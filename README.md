@@ -1,33 +1,187 @@
-# Análisis de Sentimiento Financiero con NLP (FinBERT)
+# Análisis de sentimiento financiero con FinBERT
 
-## Descripción del Proyecto
-Este proyecto implementa un *pipeline* automatizado de ingeniería de datos e Inteligencia Artificial para el análisis de sentimiento en tiempo real del mercado financiero. Utiliza extracción de noticias web, procesamiento de lenguaje natural (NLP) y visualización de datos para diagnosticar el sesgo (alcista, bajista o neutral) sobre activos específicos.
+[![Tests](https://github.com/jorgegalanr/nlp-financial-sentiment/actions/workflows/tests.yml/badge.svg)](https://github.com/jorgegalanr/nlp-financial-sentiment/actions/workflows/tests.yml)
 
-## Arquitectura y Flujo de Datos
-1. **Extracción (Web Scraping):** Conexión a la API de Yahoo Finance mediante `yfinance` para extraer titulares recientes. Implementación de programación defensiva (`.get()`) para tolerar cambios estructurales en los diccionarios de la API origen sin romper el código.
-2. **Preprocesamiento y Traducción:** Uso de `deep-translator` para estandarizar las entradas al inglés, superando la barrera del idioma del modelo predictivo.
-3. **Inferencia (NLP):** Integración de `ProsusAI/finbert`, un modelo basado en BERT preentrenado con corpus financiero (informes SEC, noticias de mercado), alojado en Hugging Face.
-4. **Visualización:** Consolidación de los resultados en un DataFrame de Pandas y renderizado de gráficos de resumen mediante Seaborn y Matplotlib.
+Pipeline educativo para extraer titulares asociados a un activo, normalizar la respuesta de Yahoo Finance y clasificarlos como positivos, negativos o neutrales mediante [`ProsusAI/finbert`](https://huggingface.co/ProsusAI/finbert).
 
-## Debilidades del Modelo y Solución Implementada
-**El problema:** Modelos especializados como FinBERT presentan un alto rendimiento, pero están fuertemente sesgados hacia el idioma de su entrenamiento (inglés). Ante un titular en español u otro idioma, el modelo no generaliza y devuelve falsos positivos o clasificaciones erróneas, comprometiendo la fiabilidad del análisis.
+El proyecto separa dos objetivos:
 
-**La solución:** En lugar de reentrenar un modelo desde cero (costoso e ineficiente para este alcance), se ha implementado un patrón de arquitectura con un paso intermedio. Se intercepta la noticia cruda y se procesa mediante una API de traducción (Google Translate) en tiempo real. El modelo NLP recibe exclusivamente texto estandarizado en inglés, garantizando la precisión del análisis independientemente del origen de la noticia.
+1. **Reproducibilidad:** una muestra sintética versionada permite repetir la inferencia sin depender de Internet.
+2. **Exploración actual:** el mismo pipeline puede consultar las noticias que Yahoo asocia a un ticker en el momento de la ejecución.
 
-## Caso de Estudio: Tesla (TSLA) - Marzo 2026
-Durante la fase de validación, se ejecutó el *pipeline* sobre las últimas 10 noticias publicadas del ticker `TSLA`. 
+> Las etiquetas describen la salida del modelo sobre el texto. No son una predicción del precio, una recomendación de inversión ni una validación de la veracidad de la noticia.
 
-Los resultados mostraron un claro sesgo pesimista en el mercado:
-* **0 Noticias Positivas.**
-* **5 Noticias Neutrales.**
-* **5 Noticias Negativas** (Asociadas a caídas del Dow Jones, volatilidad y bajadas en las acciones del sector EV).
+## Problema
 
-El resultado se consolida en un gráfico de barras que omite dinámicamente las categorías sin valores, mostrando la realidad del entorno de mercado de forma directa para la toma de decisiones.
+Las fuentes financieras publican titulares con estructuras y grados de relación diferentes. Una noticia devuelta para `TSLA` puede mencionar directamente a Tesla o limitarse a describir el contexto tecnológico o macroeconómico.
 
-## Tecnologías Utilizadas
-* Python 3
-* `transformers` (Hugging Face)
-* `yfinance`
-* `pandas`
-* `deep-translator`
-* `matplotlib` & `seaborn`
+El pipeline:
+
+- admite tanto el formato plano como el formato anidado de `yfinance.Ticker.news`;
+- elimina titulares vacíos y duplicados;
+- conserva fecha, fuente, resumen y enlace;
+- diferencia menciones directas de noticias de contexto mediante términos configurables;
+- ejecuta FinBERT una sola vez sobre el conjunto de titulares;
+- guarda la etiqueta y el score del modelo en campos separados;
+- genera un CSV y una visualización reproducibles.
+
+## Arquitectura
+
+```mermaid
+flowchart TD
+    A[CSV versionado o Yahoo Finance] --> B[Normalización y deduplicación]
+    B --> C[Relevancia directa o contexto]
+    C --> D{Traducción solicitada}
+    D -- No --> E[FinBERT]
+    D -- Sí --> F[Traductor externo]
+    F --> E
+    E --> G[CSV de resultados]
+    E --> H[Resumen y gráfico]
+```
+
+La traducción es opcional y está desactivada por defecto. Utiliza un servicio externo y puede alterar matices financieros, por lo que no garantiza que la clasificación sea correcta.
+
+## Datos de demostración
+
+`data/sample_headlines.csv` contiene titulares sintéticos creados exclusivamente para reproducir el flujo técnico. No son noticias reales ni forman un conjunto de validación etiquetado.
+
+Columnas principales:
+
+| Campo | Descripción |
+|---|---|
+| `ticker` | Activo asociado al titular |
+| `published_at` | Fecha de publicación disponible |
+| `title` | Texto enviado al modelo |
+| `relevance` | `direct` si menciona el activo; `context` en caso contrario |
+| `model_label` | Clase generada: positive, negative o neutral |
+| `model_score` | Score softmax de la clase elegida; no es certeza calibrada |
+
+## Instalación
+
+Desarrollado para Python 3.12.
+
+```bash
+git clone https://github.com/jorgegalanr/nlp-financial-sentiment.git
+cd nlp-financial-sentiment
+python -m venv .venv
+```
+
+Activación en Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Activación en Linux o macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Instalación:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+La primera inferencia descarga los pesos de FinBERT desde Hugging Face.
+
+## Ejecución
+
+### Muestra local reproducible
+
+```bash
+python run_analysis.py --input data/sample_headlines.csv
+```
+
+### Noticias actuales asociadas a Tesla
+
+```bash
+python run_analysis.py --ticker TSLA --company-term Tesla
+```
+
+### Traducción explícita al inglés
+
+```bash
+python run_analysis.py --input data/sample_headlines.csv --translate
+```
+
+Los resultados se guardan por defecto en:
+
+```text
+reports/sentiment_results.csv
+reports/sentiment_distribution.png
+```
+
+## Notebooks
+
+- `01_exploracion_original.ipynb`: conserva el proceso de descubrimiento inicial, incluidos los cambios de estructura observados en Yahoo.
+- `02_pipeline_reproducible.ipynb`: utiliza los módulos reutilizables y la muestra versionada.
+
+El primer notebook es histórico. Sus diez noticias y sus salidas pertenecen a una ejecución concreta y no constituyen una validación del modelo.
+
+## Pruebas
+
+Las pruebas no descargan FinBERT ni consultan Yahoo. Utilizan respuestas simuladas para verificar la lógica propia del proyecto.
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m pytest -q
+```
+
+Se comprueba:
+
+- compatibilidad con respuestas planas y anidadas de Yahoo;
+- extracción de fecha, fuente y enlace;
+- clasificación de relevancia;
+- eliminación de duplicados y registros sin titular;
+- correspondencia entre titulares y predicciones;
+- traducción únicamente cuando se solicita.
+
+## Qué demuestra el proyecto
+
+- Integración de un Transformer financiero preentrenado.
+- Normalización defensiva de datos externos con estructuras cambiantes.
+- Separación entre extracción, inferencia y presentación.
+- Uso de dependencias inyectables para probar el código sin red ni modelos pesados.
+- Comunicación explícita de las limitaciones de un score de sentimiento.
+
+## Limitaciones
+
+- No se compara la salida con etiquetas humanas, por lo que no se estima accuracy, precision, recall o F1.
+- FinBERT fue ajustado principalmente para texto financiero en inglés.
+- La traducción puede modificar términos o matices relevantes.
+- Yahoo puede cambiar su estructura, disponibilidad o selección de noticias.
+- Una noticia relacionada con un ticker no necesariamente habla directamente de la empresa.
+- El score del modelo no está presentado como probabilidad calibrada de que la etiqueta sea correcta.
+- No se estudia la relación entre sentimiento y rentabilidad posterior.
+
+## Estructura
+
+```text
+.
+├── data/
+│   └── sample_headlines.csv
+├── notebooks/
+│   ├── 01_exploracion_original.ipynb
+│   └── 02_pipeline_reproducible.ipynb
+├── reports/
+├── src/
+│   ├── news.py
+│   └── sentiment.py
+├── tests/
+│   ├── test_news.py
+│   └── test_sentiment.py
+├── run_analysis.py
+├── requirements.txt
+└── requirements-test.txt
+```
+
+## Autor
+
+Jorge Galán Rodríguez — [GitHub](https://github.com/jorgegalanr) · [LinkedIn](https://www.linkedin.com/in/jorgegalanrodriguez)
+
+## Licencia
+
+MIT
