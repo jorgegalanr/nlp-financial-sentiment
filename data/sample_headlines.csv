@@ -1,0 +1,10 @@
+ticker,published_at,title,summary,publisher,url,relevance,source
+DEMO,2026-03-01T09:00:00Z,"The bank reported stronger profits after lower loan-loss provisions.",Synthetic example,Portfolio demo,,context,synthetic
+DEMO,2026-03-02T09:00:00Z,"The company warned that liquidity may be insufficient to meet its obligations.",Synthetic example,Portfolio demo,,context,synthetic
+DEMO,2026-03-03T09:00:00Z,"The central bank kept interest rates unchanged after its scheduled meeting.",Synthetic example,Portfolio demo,,context,synthetic
+TSLA,2026-03-04T09:00:00Z,"Tesla reported record quarterly vehicle deliveries above market expectations.",Synthetic example,Portfolio demo,,direct,synthetic
+TSLA,2026-03-05T09:00:00Z,"Tesla shares fell after the company reduced its margin guidance.",Synthetic example,Portfolio demo,,direct,synthetic
+TSLA,2026-03-06T09:00:00Z,"Tesla scheduled its annual shareholder meeting for next month.",Synthetic example,Portfolio demo,,direct,synthetic
+TSLA,2026-03-07T09:00:00Z,"Oil prices rose as supply disruptions intensified across global markets.",Synthetic example,Portfolio demo,,context,synthetic
+TSLA,2026-03-08T09:00:00Z,"Electric vehicle demand remained stable during the latest reporting period.",Synthetic example,Portfolio demo,,context,synthetic
+
