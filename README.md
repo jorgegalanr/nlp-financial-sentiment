@@ -1,7 +1,5 @@
 # Análisis de sentimiento financiero con FinBERT
 
-[![Tests](https://github.com/jorgegalanr/nlp-financial-sentiment/actions/workflows/tests.yml/badge.svg)](https://github.com/jorgegalanr/nlp-financial-sentiment/actions/workflows/tests.yml)
-
 Pipeline educativo para extraer titulares asociados a un activo, normalizar la respuesta de Yahoo Finance y clasificarlos como positivos, negativos o neutrales mediante [`ProsusAI/finbert`](https://huggingface.co/ProsusAI/finbert).
 
 El proyecto separa dos objetivos:
